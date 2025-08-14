@@ -19,18 +19,46 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { apiGet, apiSend } from '../lib/api'
+import { useUserStore } from '../stores/user'
 
-const messages = ref([
-  { text: 'Hey! Nice to match 😊', when:'18:20', me:false },
-  { text: 'Hey you! How’s your day?', when:'18:21', me:true },
-])
+const route = useRoute()
+const user = useUserStore()
+const withId = ref(route.query.with ? Number(route.query.with) : null)
+const messages = ref([])
 const draft = ref('')
 
-function send(){
-  if(!draft.value.trim()) return
-  messages.value.push({ text: draft.value, when: new Date().toLocaleTimeString().slice(0,5), me:true })
-  draft.value = ''
+watch(() => route.query.with, (v)=> { withId.value = v ? Number(v) : null; load() })
+
+onMounted(load)
+
+async function load(){
+  if(!withId.value) return
+  try {
+    const apiMsgs = await apiGet(`/messages?with=${withId.value}`, user.token)
+    messages.value = apiMsgs.length ? apiMsgs : fallbackMessages()
+  } catch(e){
+    console.error(e)
+    messages.value = fallbackMessages()
+  }
+}
+
+async function send(){
+  if(!draft.value.trim() || !withId.value) return
+  try{
+    const msg = await apiSend('/messages', 'POST', { toUserId: withId.value, text: draft.value }, user.token)
+    messages.value.push(msg || { text:draft.value, when:new Date().toLocaleTimeString().slice(0,5), me:true })
+    draft.value = ''
+  }catch(e){ alert('Send failed: ' + e.message) }
+}
+
+function fallbackMessages(){
+  return [
+    { text: 'Hey! Nice to match 😊', when:'18:20', me:false },
+    { text: 'Hey you! How’s your day?', when:'18:21', me:true },
+  ]
 }
 
 function bubbleStyle(isMe){

@@ -18,8 +18,29 @@
 </template>
 
 <script setup>
-const matches = [
-  { id: 101, name: 'Arielle', photo:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600&auto=format&fit=crop' },
-  { id: 102, name: 'Noah',    photo:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop' },
-]
+import { ref, onMounted } from 'vue'
+import { useUserStore } from '../stores/user'
+import { apiGet } from '../lib/api'
+
+const user = useUserStore()
+const matches = ref([])
+
+onMounted(load)
+
+async function load(){
+  try {
+    const apiMatches = await apiGet('/matches', user.token)
+    matches.value = apiMatches.length ? apiMatches : fallbackMatches()
+  } catch(e){
+    console.error(e)
+    matches.value = fallbackMatches()
+  }
+}
+
+function fallbackMatches(){
+  return [
+    { id: 101, name: 'Arielle', photo:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600&auto=format&fit=crop' },
+    { id: 102, name: 'Noah',    photo:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop' },
+  ]
+}
 </script>
