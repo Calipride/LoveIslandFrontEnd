@@ -19,66 +19,41 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { apiGet, apiSend } from '../lib/api'
-import { useUserStore } from '../stores/user'
+import { ref, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
+import { apiGet, apiSend } from "@/lib/api";
 
-const route = useRoute()
-const user = useUserStore()
+const route = useRoute();
+const peerId = ref(Number(route.params.peerId));
+const messages = ref([]);
+const body = ref("");
+const error = ref("");
+const loading = ref(false);
 
-const peerId = ref(route.query.with ? Number(route.query.with) : null)
-const messages = ref([])
-const draft = ref('')
-
-watch(() => route.query.with, (v)=> {
-  peerId.value = v ? Number(v) : null
-  load()
-})
-
-onMounted(load)
-
-async function load(){
-  if(!peerId.value) return
-  try{
+async function loadThread() {
+  try {
     // GET /api/messages/thread/{peerId}
-    const raw = await apiGet(`/messages/thread/${peerId.value}`, user.token)
-    // Map backend fields -> UI shape
-    messages.value = raw.map(m => ({
-      text: m.body,                                      // Body -> text
-      when: new Date(m.sentAt).toLocaleTimeString().slice(0,5), // SentAt -> when
-      me:   m.senderId === (user.me?.id ?? user.me?.Id)  // SenderId -> me
-    }))
-  }catch(e){
-    console.error(e)
+    messages.value = await apiGet(`/messages/thread/${peerId.value}`);
+  } catch (e) {
+    error.value = e?.response?.data ?? e.message;
   }
 }
 
-async function send(){
-  if(!draft.value.trim() || !peerId.value) return
-  try{
-    // POST /api/messages/{peerId}  body: { body: '...' }
-    const res = await apiSend(`/messages/${peerId.value}`, 'POST', { body: draft.value }, user.token)
-    // res is your saved entity; map and append
-    messages.value.push({
-      text: res.body,
-      when: new Date(res.sentAt).toLocaleTimeString().slice(0,5),
-      me:   true
-    })
-    draft.value = ''
-  }catch(e){
-    alert('Send failed: ' + e.message)
+async function send() {
+  if (!body.value.trim()) return;
+  try {
+    // POST /api/messages/{peerId}  body: { body }
+    const msg = await apiSend(`/messages/${peerId.value}`, "POST", { body: body.value });
+    messages.value.push(msg);
+    body.value = "";
+  } catch (e) {
+    alert(e?.response?.data ?? e.message);
   }
 }
 
-function bubbleStyle(isMe){
-  return {
-    alignSelf: isMe ? 'flex-end' : 'flex-start',
-    background: isMe ? 'linear-gradient(90deg,var(--accent-1),var(--accent-2))' : 'rgba(255,255,255,.08)',
-    color: isMe ? '#12021e' : '#fff',
-    padding: '10px 12px',
-    borderRadius: '14px',
-    maxWidth: '78%'
-  }
-}
+onMounted(loadThread);
+watch(() => route.params.peerId, (v) => {
+  peerId.value = Number(v);
+  loadThread();
+});
 </script>

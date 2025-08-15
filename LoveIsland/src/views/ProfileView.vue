@@ -26,50 +26,51 @@
 </template>
 
 <script setup>
-import { ref, watchEffect } from 'vue'
-import { useUserStore } from '../stores/user'
-const user = useUserStore()
+import { ref, onMounted } from "vue";
+import { apiGet, apiSend } from "@/lib/api";
 
-const name  = ref(user.me?.name  ?? 'Mary')
-const age   = ref(user.me?.age   ?? 22)
-const bio   = ref(user.me?.bio   ?? 'Learning, lifting, living 💜')
-const photo = ref(user.me?.photo ?? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600&auto=format&fit=crop')
+const me = ref(null);
+const form = ref({
+  displayName: "",
+  bio: "",
+  city: "",
+  gender: "",
+  dateOfBirth: null,
+  latitude: null,
+  longitude: null,
+});
+const saving = ref(false);
+const error = ref("");
 
-watchEffect(() => {
-  if (user.me) {
-    name.value  = user.me.name  ?? name.value
-    age.value   = user.me.age   ?? age.value
-    bio.value   = user.me.bio   ?? bio.value
-    photo.value = user.me.photo ?? photo.value
-  }
-})
-
-async function save(){
-  try{
-    await user.updateMe({
-      name: name.value,
-      age: age.value,
-      bio: bio.value,
-      photo: photo.value
-    })
-    alert('Profile saved!')
-  }catch(err){
-    alert('Save failed: ' + err.message)
+async function loadMe() {
+  try {
+    // GET /api/users/me
+    const data = await apiGet("/users/me");
+    me.value = data;
+    form.value.displayName = data.displayName ?? "";
+    form.value.bio = data.bio ?? "";
+    form.value.city = data.city ?? "";
+    form.value.gender = data.gender ?? "";
+    form.value.dateOfBirth = data.dateOfBirth ?? null;
+    form.value.latitude = data.latitude ?? null;
+    form.value.longitude = data.longitude ?? null;
+  } catch (e) {
+    error.value = e?.response?.data ?? e.message;
   }
 }
 
-function reset(){
-  name.value=''; age.value=null; bio.value=''; photo.value=''
+async function save() {
+  saving.value = true;
+  error.value = "";
+  try {
+    // PUT /api/users/me
+    await apiSend("/users/me", "PUT", form.value);
+  } catch (e) {
+    error.value = e?.response?.data ?? e.message;
+  } finally {
+    saving.value = false;
+  }
 }
+
+onMounted(loadMe);
 </script>
-
-<style scoped>
-.field{
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(0,0,0,.2);
-  color: #fff;
-  padding: 10px;
-}
-</style>

@@ -18,29 +18,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useUserStore } from '../stores/user'
-import { apiGet } from '../lib/api'
+import { ref, onMounted } from "vue";
+import { apiGet } from "@/lib/api";
+import { useRouter } from "vue-router";
 
-const user = useUserStore()
-const matches = ref([])
+const matches = ref([]);
+const error = ref("");
+const loading = ref(false);
+const router = useRouter();
 
-onMounted(load)
-
-async function load(){
+async function load() {
+  loading.value = true;
+  error.value = "";
   try {
-    const apiMatches = await apiGet('/matches', user.token)
-    matches.value = apiMatches.length ? apiMatches : fallbackMatches()
-  } catch(e){
-    console.error(e)
-    matches.value = fallbackMatches()
+    // GET /api/matches
+    matches.value = await apiGet("/matches");
+  } catch (e) {
+    error.value = e?.response?.data ?? e.message;
+  } finally {
+    loading.value = false;
   }
 }
 
-function fallbackMatches(){
-  return [
-    { id: 101, name: 'Arielle', photo:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600&auto=format&fit=crop' },
-    { id: 102, name: 'Noah',    photo:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop' },
-  ]
+function openChat(peerId) {
+  router.push({ name: "chat", params: { peerId } });
 }
+
+onMounted(load);
 </script>
+
