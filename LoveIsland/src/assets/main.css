@@ -1,118 +1,42 @@
 :root{
-  --bg-1: #10002b;
-  --bg-2: #240046;
-  --bg-3: #3c096c;
-  --accent-1:#ff7aa2;  /* pink */
-  --accent-2:#ffb86b;  /* peach */
-  --accent-3:#9d4edd;  /* purple */
-  --text-1: #ffffff;
-  --text-2: #e9e9ee;
-  --chip: rgba(255,255,255,.1);
+  --bg1:#20002c;
+  --bg2:#6f2dbd;
+  --ink:#f5f5f7;
+  --ink-dim:#c7c7cf;
+  --card:#2b2240aa;
+  --accent:#ff5db1;
+  --ok:#2ecc71;
+  --warn:#ffcc00;
+  --danger:#ff5252;
 }
 
-/* Full height app (mobile + desktop) */
-html, body, #app {
-  height: 100%;
-}
-html, body {
-  margin: 0;
-  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  color: var(--text-1);
-  background:
-    radial-gradient(1200px 800px at 100% -10%, var(--accent-2)10%, transparent 60%),
-    radial-gradient(1200px 800px at -10% 110%, var(--accent-3)10%, transparent 60%),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2) 50%, var(--bg-3));
+html,body,#app{height:100%; margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; color:var(--ink);}
+
+body{
+  background: radial-gradient(1200px 800px at 85% 10%, #ffb86b33 0%, transparent 60%),
+              radial-gradient(1000px 700px at 10% 90%, #ff5db133 0%, transparent 60%),
+              linear-gradient(160deg, var(--bg1), var(--bg2));
   background-attachment: fixed;
 }
 
-/* App container ensures 100dvh on mobile */
-.app-shell {
-  min-height: 100dvh;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-}
-
-/* Shared UI bits */
-.container {
-  width: min(1100px, 92%);
-  margin: 0 auto;
-}
-
-.card {
-  background: rgba(255,255,255,0.08);
+.container{ width: min(1000px, 92%); margin: 0 auto; }
+.card{
+  background: var(--card);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  border: 1px solid #ffffff22;
+  border-radius: 16px; padding: 16px;
 }
 
-.btn {
-  border: 0;
-  padding: 12px 18px;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform .08s ease, box-shadow .2s ease;
-}
+.btn{ background: var(--accent); color:white; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; }
+.btn-ghost{ background: transparent; border:1px solid #ffffff55; color:var(--ink); border-radius:10px; padding:10px 14px; cursor:pointer; }
+.field{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid #ffffff33; background:#ffffff11; color:var(--ink); }
 
-.btn:active { transform: translateY(1px) scale(.99); }
+.grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.grid-3{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
 
-.btn-primary {
-  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
-  color: #12021e;
-  box-shadow: 0 6px 20px rgba(255, 122, 162, .35);
-}
+.photo{ width:100%; aspect-ratio: 1/1; object-fit:cover; border-radius:16px; background:#00000033; }
 
-.btn-ghost {
-  background: rgba(255,255,255,.08);
-  color: var(--text-1);
-  border: 1px solid rgba(255,255,255,.14);
-}
+.bottom-pad{ padding-bottom: 66px; } /* bottom nav spacer */
 
-/* bottom nav */
-.bottom-nav {
-  position: sticky;
-  bottom: env(safe-area-inset-bottom, 0px);
-  z-index: 20;
-  background: rgba(16,0,43,.6);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255,255,255,.12);
-}
-
-.nav-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 10px max(16px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-right));
-}
-
-.nav-btn {
-  text-align: center;
-  font-size: 12px;
-  padding: 8px 0;
-  color: var(--text-2);
-  border-radius: 12px;
-}
-.nav-btn.active {
-  background: var(--chip);
-  color: #fff;
-  font-weight: 600;
-}
-
-/* swipe area */
-.swipe-stage {
-  height: min(72vh, 760px);
-  display: grid; place-items: center;
-}
-
-.tag {
-  display: inline-block;
-  padding: 6px 10px;
-  background: var(--chip);
-  color: var(--text-2);
-  border-radius: 999px;
-  font-size: 12px;
-  margin-right: 6px;
-}
-
-h1, h2, h3 { margin: 0 0 10px; }
+a{ color:#ffdfff; text-decoration:none; }
+a.router-link-active{ text-decoration:underline; }

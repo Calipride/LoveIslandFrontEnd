@@ -1,49 +1,24 @@
 <template>
-  <section>
-    <h1 style="margin-bottom:14px;">Matches</h1>
-    <div class="card" style="padding:12px;">
-      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px;">
-        <div v-for="m in matches" :key="m.id" class="card" style="overflow:hidden;">
-          <img :src="m.photo" alt="" style="width:100%;aspect-ratio:1/1;object-fit:cover;">
-          <div style="padding:10px;">
-            <strong>{{ m.name }}</strong>
-            <div style="margin-top:8px;">
-              <RouterLink class="btn btn-primary" :to="{name:'chat', query:{ with:m.id }}">Chat</RouterLink>
-            </div>
-          </div>
+  <section class="container">
+    <h2>Matches</h2>
+    <div class="grid-3" v-if="matches.length">
+      <div class="card" v-for="m in matches" :key="m.matchId">
+        <img :src="m.mainPhoto || '/placeholder.png'" class="photo"/>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+          <div>{{ m.displayName }}</div>
+          <router-link class="btn" :to="{ name:'chat', query:{ peer: m.id } }">Chat</router-link>
         </div>
       </div>
     </div>
+    <div v-else class="card">No matches yet.</div>
   </section>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { apiGet } from "@/lib/api";
-import { useRouter } from "vue-router";
+import { onMounted, computed } from 'vue'
+import { useChatStore } from '@/stores/chat'
 
-const matches = ref([]);
-const error = ref("");
-const loading = ref(false);
-const router = useRouter();
-
-async function load() {
-  loading.value = true;
-  error.value = "";
-  try {
-    // GET /api/matches
-    matches.value = await apiGet("/matches");
-  } catch (e) {
-    error.value = e?.response?.data ?? e.message;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function openChat(peerId) {
-  router.push({ name: "chat", params: { peerId } });
-}
-
-onMounted(load);
+const chat = useChatStore()
+const matches = computed(() => chat.matches)
+onMounted(() => chat.loadMatches())
 </script>
-

@@ -1,18 +1,14 @@
-<!-- src/views/LoginView.vue -->
 <template>
-  <section style="max-width:400px;margin:auto;padding:20px;">
-    <h1>Login</h1>
-    <form @submit.prevent="doLogin">
-      <input v-model="email" type="email" placeholder="Email" class="field" required />
-      <input v-model="password" type="password" placeholder="Password" class="field" required />
-      <button type="submit" class="btn btn-primary">Login</button>
-    </form>
-    <p v-if="error" style="color:red">{{ error }}</p>
-    
-     <section style="max-width:420px;margin:60px auto;padding:20px;">
-    <h1>Login</h1>
-    <p>If you can read this, routing works.</p>
-  </section>
+  <section class="container" style="max-width:420px;">
+    <div class="card">
+      <h2 style="margin:0 0 10px;">Login</h2>
+      <form @submit.prevent="doLogin" class="grid-1">
+        <input class="field" v-model="email" type="email" placeholder="Email" required />
+        <input class="field" v-model="password" type="password" placeholder="Password" required />
+        <button class="btn" type="submit" :disabled="loading">{{ loading ? 'Signing in…' : 'Login' }}</button>
+      </form>
+      <p v-if="err" style="color:var(--danger); margin-top:10px;">{{ err }}</p>
+    </div>
   </section>
 </template>
 
@@ -23,30 +19,21 @@ import { useUserStore } from '@/stores/user'
 
 const email = ref('')
 const password = ref('')
-const error = ref('')
+const loading = ref(false)
+const err = ref('')
+
 const router = useRouter()
 const route = useRoute()
-const userStore = useUserStore()
+const user = useUserStore()
 
-async function doLogin() {
-  try {
-    error.value = ''
-    await userStore.login(email.value, password.value)
+async function doLogin(){
+  loading.value = true
+  err.value = ''
+  try{
+    await user.login(email.value, password.value)
     router.push(route.query.redirect || '/')
-  } catch (err) {
-    error.value = 'Invalid login'
-  }
+  }catch(e){
+    err.value = 'Invalid email or password'
+  }finally{ loading.value = false }
 }
 </script>
-
-<style scoped>
-.field {
-  display: block;
-  width: 100%;
-  margin: 8px 0;
-  padding: 8px;
-}
-.btn-primary {
-  padding: 8px 12px;
-}
-</style>

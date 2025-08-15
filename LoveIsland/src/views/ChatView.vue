@@ -1,59 +1,55 @@
 <template>
-  <section>
-    <h1 style="margin-bottom:14px;">Chat</h1>
+  <section class="container">
+    <h2>Chat</h2>
 
-    <div class="card" style="display:grid; grid-template-rows: 1fr auto; min-height: 60vh;">
-      <div style="padding:14px; overflow:auto; display:flex; flex-direction:column; gap:10px;">
-        <div v-for="(m,i) in messages" :key="i" :style="bubbleStyle(m.me)">
-          <div style="font-size:13px; opacity:.8; margin-bottom:4px;">{{ m.when }}</div>
-          <div>{{ m.text }}</div>
-        </div>
+    <div class="card" style="margin-bottom:12px;">
+      <label>Peer ID:</label>
+      <input class="field" v-model.number="peerId" type="number" placeholder="Select from Matches page or enter ID"/>
+      <button class="btn" @click="open">Open thread</button>
+    </div>
+
+    <div v-if="thread.length" class="card">
+      <div v-for="m in thread" :key="m.id" style="margin:8px 0;">
+        <div style="font-size:.9rem; opacity:.7;">{{ m.senderId === me.id ? 'Me' : 'Them' }}</div>
+        <div class="card" style="padding:10px;">{{ m.body }}</div>
       </div>
-
-      <form @submit.prevent="send" style="display:flex; gap:10px; padding:10px; border-top:1px solid rgba(255,255,255,.1);">
-        <input v-model="draft" placeholder="Type a message…" style="flex:1; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(0,0,0,.2); color:#fff; padding:12px;">
-        <button class="btn btn-primary">Send</button>
+      <form @submit.prevent="sendMsg" style="display:flex; gap:8px; margin-top:8px;">
+        <input class="field" v-model="text" placeholder="Type message…"/>
+        <button class="btn">Send</button>
       </form>
     </div>
+    <div v-else class="card">Open a thread to start chatting.</div>
   </section>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
-import { apiGet, apiSend } from "@/lib/api";
+import { ref, computed, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
+import { useChatStore } from '@/stores/chat'
+import { useRoute } from 'vue-router'
 
-const route = useRoute();
-const peerId = ref(Number(route.params.peerId));
-const messages = ref([]);
-const body = ref("");
-const error = ref("");
-const loading = ref(false);
+const chat = useChatStore()
+const user = useUserStore()
+const me = computed(() => user.me)
 
-async function loadThread() {
-  try {
-    // GET /api/messages/thread/{peerId}
-    messages.value = await apiGet(`/messages/thread/${peerId.value}`);
-  } catch (e) {
-    error.value = e?.response?.data ?? e.message;
-  }
+const route = useRoute()
+const peerId = ref(Number(route.query.peer || 0))
+const text = ref('')
+
+async function open(){
+  if(!peerId.value) return
+  await chat.openThread(peerId.value)
 }
 
-async function send() {
-  if (!body.value.trim()) return;
-  try {
-    // POST /api/messages/{peerId}  body: { body }
-    const msg = await apiSend(`/messages/${peerId.value}`, "POST", { body: body.value });
-    messages.value.push(msg);
-    body.value = "";
-  } catch (e) {
-    alert(e?.response?.data ?? e.message);
-  }
+async function sendMsg(){
+  if(!text.value || !peerId.value) return
+  await chat.send(peerId.value, text.value)
+  text.value = ''
 }
 
-onMounted(loadThread);
-watch(() => route.params.peerId, (v) => {
-  peerId.value = Number(v);
-  loadThread();
-});
+const thread = computed(() => chat.thread)
+
+onMounted(() => {
+  if(route.query.peer) open()
+})
 </script>

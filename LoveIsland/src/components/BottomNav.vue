@@ -1,15 +1,8 @@
 <template>
-  <nav class="bottom-nav">
-    <div class="container nav-grid">
-      <RouterLink :to="{name:'discover'}" class="nav-btn" :class="{active: route.name==='discover'}">Discover</RouterLink>
-      <RouterLink :to="{name:'matches'}"  class="nav-btn" :class="{active: route.name==='matches'}">Matches</RouterLink>
-      <RouterLink :to="{name:'chat'}"     class="nav-btn" :class="{active: route.name==='chat'}">Chat</RouterLink>
-      <RouterLink :to="{name:'profile'}"  class="nav-btn" :class="{active: route.name==='profile'}">Profile</RouterLink>
-    </div>
+  <nav style="position:fixed; left:0; right:0; bottom:0; display:flex; gap:8px; justify-content:space-around; padding:10px; background:#0b051599; border-top:1px solid #ffffff22; backdrop-filter: blur(8px);">
+    <router-link to="/">Discover</router-link>
+    <router-link to="/matches">Matches</router-link>
+    <router-link to="/chat">Chat</router-link>
+    <router-link to="/profile">Profile</router-link>
   </nav>
 </template>
-
-<script setup>
-import { useRoute } from 'vue-router'
-const route = useRoute()
-</script>

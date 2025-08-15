@@ -1,41 +1,42 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-
-// Eager import for login (fast), lazy-load the rest
 import LoginView from '@/views/LoginView.vue'
+import RegisterView from '@/views/RegisterView.vue'
 
 const DiscoverView = () => import('@/views/DiscoverView.vue')
 const MatchesView  = () => import('@/views/MatchesView.vue')
 const ChatView     = () => import('@/views/ChatView.vue')
 const ProfileView  = () => import('@/views/ProfileView.vue')
+const AdminView    = () => import('@/views/AdminView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    // Public
-     { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
+    { path:'/login',    name:'login',    component: LoginView,    meta:{ public:true } },
+    { path:'/register', name:'register', component: RegisterView, meta:{ public:true } },
 
-    // Protected
-    { path: '/',           name: 'discover', component: DiscoverView, meta: { requiresAuth: true } },
-    { path: '/matches',    name: 'matches',  component: MatchesView,  meta: { requiresAuth: true } },
-    // pass peer id to ChatView as a route param
-    { path: '/chat/:peerId(\\d+)', name: 'chat', component: ChatView, props: true, meta: { requiresAuth: true } },
-    { path: '/profile',    name: 'profile',  component: ProfileView,  meta: { requiresAuth: true } },
+    { path:'/',         name:'discover', component: DiscoverView },
+    { path:'/matches',  name:'matches',  component: MatchesView },
+    { path:'/chat',     name:'chat',     component: ChatView },
+    { path:'/profile',  name:'profile',  component: ProfileView },
 
-    // Redirect unknown routes
-    { path: '/:pathMatch(.*)*', redirect: '/' },
+    // admin route protected by role
+    { path:'/admin',    name:'admin',    component: AdminView, meta:{ admin:true } },
+
+    { path:'/:pathMatch(.*)*', redirect:'/' },
   ],
-  scrollBehavior(){ return { top: 0 } }
+  scrollBehavior(){ return { top:0 } }
 })
 
-// Simple auth guard
-router.beforeEach(async (to) => {
-  const user = useUserStore()
-  if (to.meta.requiresAuth && !user.isAuthed) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+router.beforeEach((to) => {
+  const u = useUserStore()
+  if (to.meta.public) return
+  if (!u.token) {
+    return { name:'login', query:{ redirect: to.fullPath } }
   }
-  return true
+  if (to.meta.admin && !u.isAdmin) {
+    return { name:'discover' }
+  }
 })
 
 export default router

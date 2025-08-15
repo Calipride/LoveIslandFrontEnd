@@ -1,76 +1,117 @@
 <template>
-  <section>
-    <h1 style="margin-bottom:14px;">Profile</h1>
-
-    <form class="card" style="padding:16px; display:grid; gap:14px;">
-      <div style="display:grid; grid-template-columns: 120px 1fr; gap:14px; align-items:center;">
-        <img :src="photo" alt="" style="width:120px;height:120px;object-fit:cover;border-radius:14px;background:#1c0933;">
-        <div>
-          <input type="url" v-model="photo" placeholder="Photo URL" class="field">
+  <section class="container">
+    <div class="grid-2">
+      <div class="card">
+        <h2>My Profile</h2>
+        <div v-if="me">
+          <img :src="me.mainPhoto || '/placeholder.png'" class="photo" style="max-width:220px;"/>
+          <div class="grid-2" style="margin-top:12px;">
+            <input class="field" v-model="form.displayName" placeholder="Display name"/>
+            <input class="field" v-model="form.city" placeholder="City"/>
+            <input class="field" v-model="form.gender" placeholder="Gender (male/female/other)"/>
+            <input class="field" v-model="dob" type="date" />
+            <input class="field" v-model.number="form.latitude" type="number" step="0.0001" placeholder="Latitude"/>
+            <input class="field" v-model.number="form.longitude" type="number" step="0.0001" placeholder="Longitude"/>
+          </div>
+          <textarea class="field" v-model="form.bio" rows="4" placeholder="Bio"></textarea>
+          <div style="display:flex; gap:10px; margin-top:8px;">
+            <button class="btn" @click="save">Save</button>
+            <button class="btn-ghost" @click="reset">Reset</button>
+          </div>
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        <input v-model="name" placeholder="Name" class="field">
-        <input v-model.number="age" type="number" min="18" max="100" placeholder="Age" class="field">
+      <div class="card">
+        <h2>Photos</h2>
+        <div class="grid-3">
+          <div v-for="p in me?.photos || []" :key="p.id" class="card">
+            <img :src="p.url" class="photo"/>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn-ghost" :disabled="p.isMain" @click="setMain(p.id)">Set main</button>
+              <button class="btn-ghost" @click="delPhoto(p.id)">Delete</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <input type="file" @change="upload"/>
+        </div>
       </div>
+    </div>
 
-      <textarea v-model="bio" rows="4" placeholder="Bio" class="field"></textarea>
-
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" type="button" @click="reset">Reset</button>
-        <button class="btn btn-primary" type="button" @click="save">Save</button>
+    <div class="card" style="margin-top:16px;">
+      <h2>Preferences</h2>
+      <div class="grid-3">
+        <input class="field" v-model.number="pref.minAge" type="number" min="18" max="99" placeholder="Min age"/>
+        <input class="field" v-model.number="pref.maxAge" type="number" min="18" max="99" placeholder="Max age"/>
+        <input class="field" v-model.number="pref.maxDistanceKm" type="number" min="1" placeholder="Max distance (km)"/>
       </div>
-    </form>
+      <input class="field" v-model="pref.interestedIn" placeholder="Interested in (male/female/any)"/>
+      <button class="btn" style="margin-top:10px;" @click="savePrefs">Save preferences</button>
+    </div>
   </section>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { apiGet, apiSend } from "@/lib/api";
+import { computed, reactive, ref, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
+import { apiUpload, apiSend, apiGet } from '@/lib/api'
 
-const me = ref(null);
-const form = ref({
-  displayName: "",
-  bio: "",
-  city: "",
-  gender: "",
-  dateOfBirth: null,
-  latitude: null,
-  longitude: null,
-});
-const saving = ref(false);
-const error = ref("");
+const user = useUserStore()
+const me = computed(() => user.me)
 
-async function loadMe() {
-  try {
-    // GET /api/users/me
-    const data = await apiGet("/users/me");
-    me.value = data;
-    form.value.displayName = data.displayName ?? "";
-    form.value.bio = data.bio ?? "";
-    form.value.city = data.city ?? "";
-    form.value.gender = data.gender ?? "";
-    form.value.dateOfBirth = data.dateOfBirth ?? null;
-    form.value.latitude = data.latitude ?? null;
-    form.value.longitude = data.longitude ?? null;
-  } catch (e) {
-    error.value = e?.response?.data ?? e.message;
-  }
+const form = reactive({
+  displayName:'', bio:'', city:'', gender:'',
+  dateOfBirth:null, latitude:null, longitude:null
+})
+const dob = ref('')
+
+const pref = reactive({ minAge:18, maxAge:99, maxDistanceKm:50, interestedIn:'any' })
+
+function syncForm(){
+  if(!me.value) return
+  form.displayName = me.value.displayName || ''
+  form.bio = me.value.bio || ''
+  form.city = me.value.city || ''
+  form.gender = me.value.gender || ''
+  form.latitude = me.value.latitude ?? null
+  form.longitude = me.value.longitude ?? null
+  dob.value = me.value.dateOfBirth ? me.value.dateOfBirth.substring(0,10) : ''
 }
 
-async function save() {
-  saving.value = true;
-  error.value = "";
-  try {
-    // PUT /api/users/me
-    await apiSend("/users/me", "PUT", form.value);
-  } catch (e) {
-    error.value = e?.response?.data ?? e.message;
-  } finally {
-    saving.value = false;
-  }
+function reset(){ syncForm() }
+async function save(){
+  const payload = { ...form, dateOfBirth: dob.value || null }
+  await user.updateMe(payload)
 }
+async function upload(e){
+  const file = e.target.files?.[0]
+  if(!file) return
+  await apiUpload('/photos', file)           // POST /api/photos
+  await user.fetchMe()                       // refresh photos
+}
+async function setMain(id){
+  await apiSend(`/photos/${id}/main`, 'PUT')
+  await user.fetchMe()
+}
+async function delPhoto(id){
+  await apiSend(`/photos/${id}`, 'DELETE')
+  await user.fetchMe()
+}
+async function loadPrefs(){
+  // If you have GET /api/users/me (already returns preference sometimes),
+  // otherwise keep local editable defaults.
+  try{
+    const u = await apiGet('/users/me')
+    if(u?.preference){
+      Object.assign(pref, u.preference)
+    }
+  }catch{}
+}
+async function savePrefs(){ await user.updatePrefs(pref) }
 
-onMounted(loadMe);
+onMounted(async () => {
+  if(!me.value) await user.fetchMe()
+  syncForm()
+  await loadPrefs()
+})
 </script>
