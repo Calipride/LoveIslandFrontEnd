@@ -49,16 +49,19 @@ async function load(){
 async function like(){
   decision.value = 'like'
   try {
-    await apiSend('/swipes', 'POST', { targetUserId: current.value.id, direction:'right' }, user.token)
-  } catch(e){ console.error(e) }
+    // YOUR backend: POST /api/swipe/{targetId} body { Like: true }
+    await apiSend(`/swipe/${current.value.id}`, 'POST', { Like: true }, user.token)
+    // (optional) you can read {matched, matchId} from the response if you want a "It's a match!" popup
+  } catch(e) { console.error(e) }
   setTimeout(next, 200)
 }
 
 async function nope(){
   decision.value = 'nope'
   try {
-    await apiSend('/swipes', 'POST', { targetUserId: current.value.id, direction:'left' }, user.token)
-  } catch(e){ console.error(e) }
+    // YOUR backend: POST /api/swipe/{targetId} body { Like: false }
+    await apiSend(`/swipe/${current.value.id}`, 'POST', { Like: false }, user.token)
+  } catch(e) { console.error(e) }
   setTimeout(next, 200)
 }
 

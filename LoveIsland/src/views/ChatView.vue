@@ -26,39 +26,49 @@ import { useUserStore } from '../stores/user'
 
 const route = useRoute()
 const user = useUserStore()
-const withId = ref(route.query.with ? Number(route.query.with) : null)
+
+const peerId = ref(route.query.with ? Number(route.query.with) : null)
 const messages = ref([])
 const draft = ref('')
 
-watch(() => route.query.with, (v)=> { withId.value = v ? Number(v) : null; load() })
+watch(() => route.query.with, (v)=> {
+  peerId.value = v ? Number(v) : null
+  load()
+})
 
 onMounted(load)
 
 async function load(){
-  if(!withId.value) return
-  try {
-    const apiMsgs = await apiGet(`/messages?with=${withId.value}`, user.token)
-    messages.value = apiMsgs.length ? apiMsgs : fallbackMessages()
-  } catch(e){
+  if(!peerId.value) return
+  try{
+    // GET /api/messages/thread/{peerId}
+    const raw = await apiGet(`/messages/thread/${peerId.value}`, user.token)
+    // Map backend fields -> UI shape
+    messages.value = raw.map(m => ({
+      text: m.body,                                      // Body -> text
+      when: new Date(m.sentAt).toLocaleTimeString().slice(0,5), // SentAt -> when
+      me:   m.senderId === (user.me?.id ?? user.me?.Id)  // SenderId -> me
+    }))
+  }catch(e){
     console.error(e)
-    messages.value = fallbackMessages()
   }
 }
 
 async function send(){
-  if(!draft.value.trim() || !withId.value) return
+  if(!draft.value.trim() || !peerId.value) return
   try{
-    const msg = await apiSend('/messages', 'POST', { toUserId: withId.value, text: draft.value }, user.token)
-    messages.value.push(msg || { text:draft.value, when:new Date().toLocaleTimeString().slice(0,5), me:true })
+    // POST /api/messages/{peerId}  body: { body: '...' }
+    const res = await apiSend(`/messages/${peerId.value}`, 'POST', { body: draft.value }, user.token)
+    // res is your saved entity; map and append
+    messages.value.push({
+      text: res.body,
+      when: new Date(res.sentAt).toLocaleTimeString().slice(0,5),
+      me:   true
+    })
     draft.value = ''
-  }catch(e){ alert('Send failed: ' + e.message) }
-}
-
-function fallbackMessages(){
-  return [
-    { text: 'Hey! Nice to match 😊', when:'18:20', me:false },
-    { text: 'Hey you! How’s your day?', when:'18:21', me:true },
-  ]
+  }catch(e){
+    alert('Send failed: ' + e.message)
+  }
 }
 
 function bubbleStyle(isMe){
