@@ -1,10 +1,14 @@
 <template>
   <section class="container">
-    <!-- Loading / error states -->
+    <!-- Loading / error -->
     <div v-if="loading" class="card center">Loading profile…</div>
+
     <div v-else-if="error" class="card error">
-      <div style="margin-bottom:8px;">Couldn’t load your profile.</div>
-      <pre style="white-space:pre-wrap">{{ error }}</pre>
+      <h3 style="margin:0 0 8px;">Couldn’t load your profile</h3>
+      <p class="muted" style="margin:0 0 10px;">
+        Check your token (log out/in), VITE_API_URL, and that /api/users/me works in Swagger.
+      </p>
+      <pre style="white-space:pre-wrap; max-height:200px; overflow:auto;">{{ error }}</pre>
       <button class="btn btn-primary" @click="load">Retry</button>
     </div>
 
@@ -14,7 +18,7 @@
       <form class="card" @submit.prevent="saveProfile">
         <h2 style="margin-bottom: 12px;">Profile</h2>
 
-        <div class="thumb" :style="thumbStyle">
+        <div class="thumb">
           <img v-if="mainPhotoUrl" :src="mainPhotoUrl" alt="main photo" />
           <div v-else class="empty-thumb">No photo</div>
         </div>
@@ -90,63 +94,51 @@
 import { ref, computed, onMounted } from 'vue'
 import { apiGet, apiSend } from '@/lib/api'
 
-// ---------- state ----------
-const loading = ref(true)
-const saving  = ref(false)
+const loading  = ref(true)
+const saving   = ref(false)
 const phSaving = ref(false)
-const error   = ref('')
+const error    = ref('')
 
-const me = ref(null) // server result shape (ProfileDto)
+const me = ref(null)
 const photos = ref([])
 
 const form = ref({
   displayName: '',
   city: '',
   gender: '',
-  dateOfBirth: '',  // ISO yyyy-mm-dd
+  dateOfBirth: '',  // yyyy-mm-dd
   latitude: null,
   longitude: null,
   bio: ''
 })
 
-// ---------- derived ----------
 const mainPhotoUrl = computed(() => {
-  if (!photos.value || photos.value.length === 0) return ''
+  if (!photos.value.length) return ''
   const main = photos.value.find(p => p.isMain)
-  return (main?.url) || photos.value[0]?.url || ''
+  return main?.url || photos.value[0]?.url || ''
 })
 
-const thumbStyle = computed(() => ({
-  width: '120px',
-  height: '120px',
-  borderRadius: '14px',
-  overflow: 'hidden',
-  background: 'rgba(255,255,255,0.04)',
-  display: 'grid',
-  placeItems: 'center',
-  marginBottom: '12px'
-}))
-
-// ---------- helpers ----------
 function copyIn(profile) {
   me.value = profile || {}
-  photos.value = (profile?.photos || []).slice().sort((a,b) => (b.isMain - a.isMain) || (a.id - b.id))
+  photos.value = (profile?.photos || [])
+    .slice()
+    .sort((a,b) => (b.isMain - a.isMain) || (a.id - b.id))
 
   form.value.displayName = profile?.displayName || ''
   form.value.city        = profile?.city || ''
   form.value.gender      = profile?.gender || ''
   form.value.bio         = profile?.bio || ''
 
-  // Date: backend may return null/ISO string
   const dob = profile?.dateOfBirth ? new Date(profile.dateOfBirth) : null
-  form.value.dateOfBirth = dob ? new Date(dob.getTime() - dob.getTimezoneOffset()*60000).toISOString().slice(0,10) : ''
+  form.value.dateOfBirth = dob
+    ? new Date(dob.getTime() - dob.getTimezoneOffset()*60000).toISOString().slice(0,10)
+    : ''
 
   form.value.latitude  = profile?.latitude ?? null
   form.value.longitude = profile?.longitude ?? null
 }
 
 function payloadOut() {
-  // Only send values (undefined will be ignored by your DTO binder if nullable)
   return {
     displayName: form.value.displayName || null,
     city:        form.value.city || null,
@@ -158,15 +150,15 @@ function payloadOut() {
   }
 }
 
-// ---------- actions ----------
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    const profile = await apiGet('/users/me')       // GET -> ProfileDto
+    const profile = await apiGet('/users/me')
     copyIn(profile || {})
   } catch (e) {
-    error.value = (e?.response?.data) || e?.message || 'Unknown error'
+    console.error('GET /users/me failed', e)
+    error.value = e?.response?.data || e?.message || 'Unknown error'
   } finally {
     loading.value = false
   }
@@ -175,9 +167,10 @@ async function load() {
 async function saveProfile() {
   saving.value = true
   try {
-    const updated = await apiSend('/users/me', 'PUT', payloadOut()) // returns ProfileDto
-    copyIn(updated || {}) // handle both OK-with-data and 204
+    const updated = await apiSend('/users/me', 'PUT', payloadOut())
+    copyIn(updated || {})
   } catch (e) {
+    console.error('PUT /users/me failed', e)
     alert('Could not save profile: ' + (e?.response?.data || e.message))
   } finally {
     saving.value = false
@@ -195,18 +188,16 @@ async function uploadPhoto(e) {
   if (!file) return
   phSaving.value = true
   try {
-    // POST /api/photos  (multipart, key = "file")
     const fd = new FormData()
-    fd.append('file', file)
-    // If your backend expects PhotoUploadForm with "file" name, the above matches.
-    const res = await apiSend('/photos', 'POST', fd) // axios will set correct headers for FormData
-    // push new photo; if it’s main, flip flags locally
+    fd.append('file', file)        // backend expects "file"
+    const res = await apiSend('/photos', 'POST', fd)  // axios handles FormData
     if (res) {
-      if (res.isMain) photos.value.forEach(p => p.isMain = false)
+      if (res.isMain) photos.value.forEach(p => (p.isMain = false))
       photos.value.unshift(res)
     }
-    fileInput.value && (fileInput.value.value = '')
+    if (fileInput.value) fileInput.value.value = ''
   } catch (e) {
+    console.error('POST /photos failed', e)
     alert('Upload failed: ' + (e?.response?.data || e.message))
   } finally {
     phSaving.value = false
@@ -219,6 +210,7 @@ async function setMain(photoId) {
     await apiSend(`/photos/${photoId}/main`, 'PUT')
     photos.value = photos.value.map(p => ({ ...p, isMain: p.id === photoId }))
   } catch (e) {
+    console.error('PUT /photos/{id}/main failed', e)
     alert('Could not set main: ' + (e?.response?.data || e.message))
   } finally {
     phSaving.value = false
@@ -231,8 +223,8 @@ async function removePhoto(photoId) {
   try {
     await apiSend(`/photos/${photoId}`, 'DELETE')
     photos.value = photos.value.filter(p => p.id !== photoId)
-    // if we deleted main, nothing breaks because mainPhotoUrl is computed from remaining list
   } catch (e) {
+    console.error('DELETE /photos/{id} failed', e)
     alert('Could not delete photo: ' + (e?.response?.data || e.message))
   } finally {
     phSaving.value = false
@@ -268,10 +260,14 @@ onMounted(load)
   border-radius: 10px;
   padding: 10px 12px;
   color: #fff;
-  outline: none;
 }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
+.thumb {
+  width: 120px; height: 120px; border-radius: 14px;
+  overflow: hidden; background: rgba(255,255,255,0.04);
+  display: grid; place-items: center; margin-bottom: 12px;
+}
 .thumb img { width: 120px; height: 120px; object-fit: cover; display: block; }
 .empty-thumb { opacity: .6; font-size: .9rem; }
 
