@@ -16,8 +16,6 @@ export const useFeedStore = defineStore('feed', {
       }
     },
     async like(id) {
-      // your backend has Swipe endpoints; simplest:
-      // POST /api/swipe  { likeeId, isLike:true }
       await apiSend('/swipe','POST',{ likeeId:id, isLike:true })
       this.items = this.items.filter(x => x.id !== id)
     },

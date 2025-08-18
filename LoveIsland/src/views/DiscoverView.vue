@@ -2,7 +2,7 @@
   <section class="container" style="padding:18px 0 24px;">
     <h2>Discover</h2>
 
-    <!-- Filters -->
+    
     <form class="card row" @submit.prevent="applyFilters" style="gap:10px;margin:12px 0;">
       <label class="field">
         <span>Gender</span>
@@ -28,7 +28,7 @@
       <button class="btn btn-ghost" type="button" @click="resetFilters" :disabled="loading">Reset</button>
     </form>
 
-    <!-- List -->
+    
     <div v-if="loading" class="card">Loading…</div>
     <div v-else-if="!feed.length" class="card">No more profiles right now. Come back later.</div>
 
@@ -91,15 +91,14 @@ async function decide(index, isLike) {
   const item = feed.value[index]
   if (!item) return
 
-  // optimistic UI
+  
   const [removed] = feed.value.splice(index, 1)
 
   try {
-    // POST /api/swipes { targetId, isLike }
     await apiSend('/swipes', 'POST', { targetId: removed.id, isLike })
-    // If there’s a match, your Matches page will reflect it next time it loads.
+
   } catch (err) {
-    // undo on error
+    
     feed.value.splice(index, 0, removed)
     alert('Swipe failed: ' + (err?.response?.data || err?.message))
   }

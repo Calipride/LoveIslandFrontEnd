@@ -8,7 +8,6 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     isAuthed: (s) => !!s.token,
-    // 🔽 admin getter from profile
     isAdmin: (s) => s.me?.role === 'admin',
   },
   actions: {

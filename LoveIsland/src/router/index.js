@@ -20,7 +20,7 @@ const router = createRouter({
     { path:'/chat',     name:'chat',     component: ChatView },
     { path:'/profile',  name:'profile',  component: ProfileView },
 
-    // admin route protected by role
+
     { path:'/admin',    name:'admin',    component: AdminView, meta:{ admin:true } },
 
     { path:'/:pathMatch(.*)*', redirect:'/' },

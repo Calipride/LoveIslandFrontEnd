@@ -9,7 +9,7 @@ export const useChatStore = defineStore('chat', {
   }),
   actions: {
     async loadMatches() {
-      this.matches = await apiGet('/matches')  // GET /api/matches
+      this.matches = await apiGet('/matches')  
     },
     async openThread(peerId) {
       this.activePeer = peerId

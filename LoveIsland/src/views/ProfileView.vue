@@ -1,6 +1,6 @@
 <template>
   <section class="container">
-    <!-- Loading / error -->
+   
     <div v-if="loading" class="card center">Loading profile…</div>
 
     <div v-else-if="error" class="card error">
@@ -12,9 +12,9 @@
       <button class="btn btn-primary" @click="load">Retry</button>
     </div>
 
-    <!-- Main content -->
+    
     <div v-else class="grid">
-      <!-- Left: profile form -->
+     
       <form class="card" @submit.prevent="saveProfile">
         <h2 style="margin-bottom: 12px;">Profile</h2>
 
@@ -67,7 +67,7 @@
         </div>
       </form>
 
-      <!-- Right: photos -->
+    
       <div class="card">
         <h2 style="margin-bottom: 12px;">Photos</h2>
 
@@ -106,7 +106,7 @@ const form = ref({
   displayName: '',
   city: '',
   gender: '',
-  dateOfBirth: '',  // yyyy-mm-dd
+  dateOfBirth: '',  
   latitude: null,
   longitude: null,
   bio: ''
@@ -189,8 +189,8 @@ async function uploadPhoto(e) {
   phSaving.value = true
   try {
     const fd = new FormData()
-    fd.append('file', file)        // backend expects "file"
-    const res = await apiSend('/photos', 'POST', fd)  // axios handles FormData
+    fd.append('file', file)       
+    const res = await apiSend('/photos', 'POST', fd)  
     if (res) {
       if (res.isMain) photos.value.forEach(p => (p.isMain = false))
       photos.value.unshift(res)

@@ -3,7 +3,6 @@
     <h2>Chat</h2>
 
     <div class="chat-grid">
-      <!-- Matches list -->
       <aside class="card matches">
         <div class="title">Matches</div>
         <div v-if="loadingMatches" class="muted">Loading…</div>
@@ -24,7 +23,7 @@
         </button>
       </aside>
 
-      <!-- Thread -->
+      
       <main class="card thread">
         <div v-if="!peerId" class="muted">Open a match to start chatting.</div>
 
@@ -77,34 +76,30 @@ function shortTime(iso) {
   catch { return '' }
 }
 
-// ---- load matches ----
+
 async function loadMatches() {
   loadingMatches.value = true
   try {
-    // expects [{ peerId, name, photo, lastMessagePreview? }]
     matches.value = await apiGet('/matches') || []
   } finally {
     loadingMatches.value = false
   }
 }
 
-// ---- open a thread with a match ----
+
 async function openThread(id) {
   if (peerId.value === id) return
   peerId.value = id
   await loadThread()
-
-  // start polling this thread
   clearInterval(pollTimer)
   pollTimer = setInterval(loadThread, 4000)
 }
 
-// ---- load thread ----
+
 async function loadThread() {
   if (!peerId.value) return
   loadingThread.value = true
   try {
-    // expects [{ id, body, senderId, recipientId, sentAt }]
     const raw = await apiGet(`/messages/thread/${peerId.value}`) || []
     const meId = await getMyId()
 
@@ -116,14 +111,12 @@ async function loadThread() {
     }))
 
     await nextTick()
-    // scroll to bottom
     if (scrollBox.value) scrollBox.value.scrollTop = scrollBox.value.scrollHeight
   } finally {
     loadingThread.value = false
   }
 }
 
-// small helper to get my user id (cached via /users/me)
 let myIdCache = null
 async function getMyId() {
   if (myIdCache) return myIdCache
@@ -132,16 +125,14 @@ async function getMyId() {
   return myIdCache
 }
 
-// ---- send message ----
+
 async function send() {
   const body = draft.value.trim()
   if (!body || !peerId.value) return
   sending.value = true
   try {
-    // POST { recipientId, body }
     const sent = await apiSend('/messages', 'POST', { recipientId: peerId.value, body })
     draft.value = ''
-    // optimistic add
     messages.value.push({
       id: sent?.id ?? Math.random(),
       body,
@@ -169,7 +160,6 @@ onBeforeUnmount(() => clearInterval(pollTimer))
   .chat-grid { grid-template-columns: 1fr; }
 }
 
-/* Matches */
 .matches .title { font-weight: 600; margin-bottom: 8px; }
 .match {
   display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center;
@@ -180,7 +170,7 @@ onBeforeUnmount(() => clearInterval(pollTimer))
 .match.active { outline: 2px solid #a78bfa; }
 .match img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
 
-/* Thread */
+
 .thread { display: grid; grid-template-rows: 1fr auto; }
 .thread-body {
   overflow: auto; min-height: 220px; max-height: 56vh; padding: 8px; border-radius: 10px;
